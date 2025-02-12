@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <title>bones</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            background-color: #000;
+            color: #fff;
+            padding: 0;
+            margin: 0;
+            font-weight: bold;
+            overflow: hidden;
+            font-family: sans-serif;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        #info {
+            background-color: #000;
+            position: absolute;
+            width: 100%;
+            top: 0px;
+            padding: 5px;
+            z-index: 999;
+        }
+
+        a {
+            color: #0080ff;
+        }
+
+        b {
+            color: orange
+        }
+
+        .label {
+            background-color: rgba(0, 0, 0, 0.8);
+            border-radius: 4px;
+            border: 1px solid #fff;
+            padding: 2px;
+        }
+
+        .label.landmark {
+            background-color: rgba(75, 140, 201, 0.8)
+        }
+
+        .label.measurement {
+            background-color: green;
+        }
+
+        .label.angle {
+            background-color: red;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        #measurements_table {
+            position: absolute;
+            z-index: 1000;
+            top: 40px;
+            right: 10px;
+            background-color: black;
+            border-radius: 4px;
+            border: 1px solid #fff;
+            padding: 2px;
+        }
+
+        #controls {
+            position: absolute;
+            z-index: 1000;
+            bottom: 10px;
+            right: 10px;
+            background-color: black;
+            border-radius: 4px;
+            border: 1px solid #fff;
+            padding: 2px;
+            text-align: left;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="info">Controls: left mouse button to rotate, right mouse button to pan. Mouse wheel to zoom. Double click
+        to focus</div>
+    <div id="container"></div>
+    <table id="measurements_table">
+        <thead>
+            <tr>
+                <th>Measurement</th>
+                <th>Value</th>
+            </tr>
+        </thead>
+        <tbody id="measurements">
+        </tbody>
+    </table>
+    <div id="controls">
+        <input type="checkbox" id="landmark" checked> Show landmarks<br>
+        <input type="checkbox" id="measurement" checked> Show measurements<br>
+        <input type="checkbox" id="angle" checked> Show angles
+    </div>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+            }
+        }
+    </script>
+    <script type="module">
+
+        import $ from 'https://cdn.jsdelivr.net/npm/jquery@3.7.1/+esm'
+        import * as THREE from 'three';
+        import Stats from 'three/addons/libs/stats.module.js';
+        import { PLYLoader } from 'three/addons/loaders/PLYLoader.js';
+        import WebGL from 'three/addons/capabilities/WebGL.js';
+        import { ArcballControls } from 'three/addons/controls/ArcballControls.js';
+        import papaparse from 'https://cdn.jsdelivr.net/npm/papaparse@5.4.1/+esm';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { LineGeometry } from 'three/addons/lines/LineGeometry.js';
+        import { LineMaterial } from 'three/addons/lines/LineMaterial.js';
+        import { Line2 } from 'three/addons/lines/Line2.js';
+
+        $("input").change(function () {
+            $("." + this.id).toggleClass("hidden");
+        });
+
+        let container = document.getElementById('container')
+
+        let stats;
+
+        let camera, cameraTarget, scene, renderer, controls, labelRenderer;
+
+        init();
+
+        function addLabel(text, position, additional_class="landmark") {
+            const labelDiv = document.createElement('div');
+            labelDiv.className = `label ${additional_class}`;
+            labelDiv.textContent = text;
+            const label = new CSS2DObject(labelDiv);
+            label.position.copy(position);
+            scene.add(label);
+        }
+
+        function annotateLine(start, end, text, textpos = "midpoint") {
+            const geometry = new LineGeometry();
+            geometry.setPositions([start.x, start.y, start.z, end.x, end.y, end.z]);
+            const material = new LineMaterial( {
+                color: "green",
+                linewidth: 2,
+                depthTest: false
+            } );
+            const line = new Line2( geometry, material );
+            scene.add(line);
+            if (text) {
+                if (textpos == "midpoint") {
+                    addLabel(text, new THREE.Vector3().addVectors(start, end).divideScalar(2), "measurement");
+                } else if (textpos == "end") {
+                    addLabel(text, end, "measurement");
+                } else if (textpos == "start") {
+                    addLabel(text, start, "measurement");
+                }
+            }
+        }
+
+        function annotateDiameter(center, diameter, text, axis = "x", textpos = "start") {
+            if (axis == "x") {
+                var start = new THREE.Vector3().copy(center).add(new THREE.Vector3(diameter / 2))
+                var end = new THREE.Vector3().copy(center).sub(new THREE.Vector3(diameter / 2))
+            } else if (axis == "z") {
+                var start = new THREE.Vector3().copy(center).add(new THREE.Vector3(0, 0, diameter / 2))
+                var end = new THREE.Vector3().copy(center).sub(new THREE.Vector3(0, 0, diameter / 2))
+            }
+            annotateLine(start, end, text, textpos);
+        }
+
+        function annotateAngle(P1, P2, P3, text) {
+            const geometry = new LineGeometry();
+            geometry.setPositions([P1.x, P1.y, P1.z, P2.x, P2.y, P2.z, P3.x, P3.y, P3.z]);
+            const material = new LineMaterial( {
+                color: "red",
+                linewidth: 2,
+                depthTest: false,
+                dashed: true
+            } );
+            const line = new Line2( geometry, material );
+            scene.add(line);
+
+            // calculate arc radius
+            var radius = Math.min(P1.distanceTo(P2), P3.distanceTo(P2)) / 2;
+
+            // set interpolation points
+            P1 = new THREE.Vector3().copy(P1).sub(P2).setLength(radius).add(P2);
+            P3 = new THREE.Vector3().copy(P3).sub(P2).setLength(radius).add(P2);
+
+            // collect points along the arc
+            var points = []
+            const N = 60;
+            for (var i = 0; i <= N; i++) {
+                var p = new THREE.Vector3().lerpVectors(P1, P3, i / N)
+                    .sub(P2).setLength(radius).add(P2);
+                points.push(p.x,p.y,p.z)
+            }
+
+            var arcGeometry = new LineGeometry();
+            arcGeometry.setPositions(points);
+            const arc = new Line2( arcGeometry, material );
+            // have to computeLineDistances to show dash
+            arc.computeLineDistances();
+            scene.add(arc);
+
+            addLabel(text, new THREE.Vector3().addVectors(P1, P3).divideScalar(2), "angle");
+        }
+
+        papaparse.parse("example_landmarks.txt", {
+            download: true,
+            header: true,
+            dynamicTyping: true,
+            skipEmptyLines: true,
+            complete: function (results) {
+                console.log(results);
+                var landmarks = {}
+                for (var landmark of results.data) {
+                    landmarks[landmark.Landmark.trim()] = new THREE.Vector3(landmark.x, landmark.y, landmark.z)
+                    if ((landmark.Landmark.indexOf("mid") == -1) && (landmark.Landmark.indexOf("int") == -1)) {
+                        addLabel(landmark.Landmark, landmarks[landmark.Landmark])
+                    }
+                }
+                console.log(landmarks)
+
+                papaparse.parse("measurements_example.txt", {
+                    download: true,
+                    header: true,
+                    dynamicTyping: true,
+                    skipEmptyLines: true,
+                    complete: function (results) {
+                        var measurements = results.data[0]
+                        console.log(measurements)
+                        var measurements_formatted = {}
+                        for (var key in measurements) {
+                            if (key != "Case_name") {
+                                measurements_formatted[key] = Math.round(measurements[key])
+                                if (key.match(/width|diameter|length|depth/)) {
+                                    measurements_formatted[key] += "mm"
+                                } else {
+                                    measurements_formatted[key] += "°"
+                                }
+                                $("#measurements").append(`<tr><td>${key}</td><td>${measurements_formatted[key]}</td></tr>`)
+                            }
+                        }
+                        annotateLine(landmarks.LASIS, landmarks.RASIS, `ASIS_width: ${measurements_formatted.ASIS_width}`);
+                        annotateLine(landmarks.LPSIS, landmarks.RPSIS, `PSIS_width: ${measurements_formatted.PSIS_width}`);
+                        annotateDiameter(landmarks.LHJC, measurements.LHJ_diameter, `LHJ_diameter: ${measurements_formatted.RHJ_diameter}`);
+                        annotateDiameter(landmarks.RHJC, measurements.RHJ_diameter, `RHJ_diameter: ${measurements_formatted.RHJ_diameter}`);
+                        annotateLine(landmarks.ASIS_mid, landmarks.PSIS_mid, `Pelvis_depth: ${measurements_formatted.pelvis_depth}`);
+                        annotateDiameter(landmarks.FHC_left, measurements.left_FHC_diameter, `Left_FHC_diameter: ${measurements_formatted.left_FHC_diameter}`, "z", "end");
+                        annotateDiameter(landmarks.FHC_right, measurements.right_FHC_diameter, `Right_FHC_diameter: ${measurements_formatted.right_FHC_diameter}`, "z", "end");
+                        annotateLine(landmarks.med_epicon_left, landmarks.lat_epicon_left, `left_epicon_width: ${measurements_formatted.left_epicon_width}`);
+                        annotateLine(landmarks.med_epicon_right, landmarks.lat_epicon_right, `right_epicon_width: ${measurements_formatted.right_epicon_width}`);
+                        annotateLine(landmarks.lat_epicon_left, landmarks.lat_great_trochant_left, `left_femoral_length: ${measurements_formatted.left_femoral_length}`);
+                        annotateLine(landmarks.lat_epicon_right, landmarks.lat_great_trochant_right, `right_femoral_length: ${measurements_formatted.right_femoral_length}`);
+
+                        annotateLine(landmarks.medial_condyle_left, landmarks.lateral_condyle_left, `left_condylar_width: ${measurements_formatted.left_condylar_width}`)
+                        annotateLine(landmarks.medial_condyle_right, landmarks.lateral_condyle_right, `right_condylar_width: ${measurements_formatted.right_condylar_width}`)
+                        annotateLine(landmarks.medial_malleolus_left, landmarks.lateral_malleolus_left, `left_malleolar_width: ${measurements_formatted.left_malleolar_width}`)
+                        annotateLine(landmarks.medial_malleolus_right, landmarks.lateral_malleolus_right, `right_malleolar_width: ${measurements_formatted.right_malleolar_width}`)
+                        annotateLine(landmarks.lateral_malleolus_left, landmarks.lateral_condyle_left, `left_tibial_length: ${measurements_formatted.left_tibial_length}`)
+                        annotateLine(landmarks.lateral_malleolus_right, landmarks.lateral_condyle_right, `right_tibial_length: ${measurements_formatted.right_tibial_length}`)
+
+                        var p2 = new THREE.Vector3().addVectors(landmarks.neck_centre_left, landmarks.lat_great_trochant_left).divideScalar(2)
+                        annotateAngle(landmarks.FHC_left, p2, landmarks.epicon_mid_left, `left_NSA: ${measurements_formatted.left_NSA}`)
+                        p2 = new THREE.Vector3().addVectors(landmarks.neck_centre_right, landmarks.lat_great_trochant_right).divideScalar(2)
+                        annotateAngle(landmarks.FHC_right, p2, landmarks.epicon_mid_right, `right_NSA: ${measurements_formatted.right_NSA}`)
+                    }
+                })
+            }
+        })
+
+        function init() {
+
+            if (!WebGL.isWebGLAvailable()) {
+                const warning = WebGL.getWebGLErrorMessage();
+                container.appendChild(warning);
+                return;
+            }
+
+            camera = new THREE.PerspectiveCamera(35, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.set(1000, 0, 0);
+
+            scene = new THREE.Scene();
+
+            const material = new THREE.MeshPhongMaterial({ color: 0xffffff, flatShading: false });
+
+            const loader = new PLYLoader();
+            for (var ply of ["Left_femur.ply", "Left_tibfib.ply", "Pelvis.ply", "Right_femur.ply", "Right_tibfib.ply"]) {
+                loader.load(ply, function (geometry) {
+                    geometry.computeVertexNormals(true);
+                    const mesh = new THREE.Mesh(geometry, material);
+                    scene.add(mesh);
+                });
+            }
+
+            // lights
+
+            const dirLight1 = new THREE.DirectionalLight(0xffffff, 3);
+            dirLight1.position.set(1, 1, 1);
+            scene.add(dirLight1);
+
+            const dirLight2 = new THREE.DirectionalLight(0x002288, 3);
+            dirLight2.position.set(-1, -1, -1);
+            scene.add(dirLight2);
+
+            const ambientLight = new THREE.AmbientLight(0x555555);
+            scene.add(ambientLight);
+            // renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setAnimationLoop(animate);
+            renderer.shadowMap.enabled = true;
+            container.appendChild(renderer.domElement);
+
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            document.body.appendChild(labelRenderer.domElement);
+
+            //controls
+            controls = new ArcballControls(camera, labelRenderer.domElement, scene);
+            controls.addEventListener('change', render);
+            controls.setGizmosVisible(false);
+            controls.minDistance = 1
+            controls.maxDistance = 2000
+            // axes
+            //const axesHelper = new THREE.AxesHelper(250);
+            //scene.add(axesHelper);
+            // stats
+            //stats = new Stats();
+            //container.appendChild(stats.dom);
+            window.addEventListener('resize', onWindowResize);
+            window.addEventListener('keydown', onKeyDown);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            render();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+        }
+
+        function onKeyDown(event) {
+            if (event.key === 'c') {
+                if (event.ctrlKey || event.metaKey) {
+                    controls.copyState();
+                }
+            } else if (event.key === 'v') {
+                if (event.ctrlKey || event.metaKey) {
+                    controls.pasteState();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
