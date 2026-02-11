@@ -13,58 +13,6 @@ import pyvista as pv
 pv.global_theme.allow_empty_mesh = True
 
 
-class FileSelector(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.selected_files = []
-        self.initUI()
-
-    def initUI(self):
-        self.layout = QVBoxLayout()
-
-        self.label = QLabel("Please select \n landmark (.txt), \n measurement (.txt) and \n bones (.ply) files", self)
-        self.label.setAlignment(Qt.AlignCenter)
-        self.label.setFont(QFont("Arial", 14, QFont.Bold))
-        self.layout.addWidget(self.label)
-
-        self.select_button = QPushButton("Select Files", self)
-        self.select_button.clicked.connect(self.showFileDialog)
-        self.layout.addWidget(self.select_button)
-
-        self.confirm_button = QPushButton("Confirm Selection", self)
-        self.confirm_button.clicked.connect(self.confirmSelection)
-        self.layout.addWidget(self.confirm_button)
-
-        self.setLayout(self.layout)
-        self.setWindowTitle("File Selector")
-        self.setGeometry(300, 300, 800, 400)
-
-    def showFileDialog(self):
-        options = QFileDialog.Options()
-        filePaths, _ = QFileDialog.getOpenFileNames(self, "Open Files", "", "Text and PLY Files (*.txt *.ply);; All files (*)]", options=options)
-        
-        if filePaths:
-            #self.selected_files = [str(Path(file).resolve()) for file in filePaths]
-            self.selected_files.extend([str(Path(file).resolve()) for file in filePaths])
-            self.label.setText("\n".join(self.selected_files))
-            #self.confirmSelection()
-
-    def confirmSelection(self):
-        if not self.selected_files:
-            QMessageBox.warning(self, "Warning", "No files selected!")
-            return
-        
-        # msgBox = QMessageBox()
-        # msgBox.setWindowTitle("Confirm Selection")
-        # msgBox.setText("You selected the following files:\n" + "\n".join(self.selected_files))
-        # msgBox.setStandardButtons(QMessageBox.Ok)
-        # msgBox.exec_()
-        self.close()
-
-    def getSelectedFiles(self):
-        return self.selected_files
-
-
 class SetVisibilityCallback:
     """Helper callback to keep a reference to the actor being modified."""
 
@@ -608,25 +556,20 @@ def process_angles(landmarks_labels, landmarks_points, measurements_labels, meas
     return angles_lines, angles_labels, angles_data, angles_points, arcs
 
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = FileSelector()
-    window.show()
-    app.exec_()
-    selected_paths = window.getSelectedFiles()
+def get_files_by_extension(directory, extension):
+    return [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(extension)]
 
+
+if __name__ == "__main__":
     p = pv.Plotter(lighting='light kit',
                    theme=pv.set_plot_theme('default'),
                    window_size=[2560, 1440])
     label_text_color = 'white'
     other_text_color = 'black'
 
-    if len(selected_paths) == 0:
-        print("No files selected, please rerun...")
-        sys.exit()
-    else:
-        txt_files = [file for file in selected_paths if file.endswith(".txt")]
-        ply_files = [file for file in selected_paths if file.endswith(".ply")]
+    model_directory = os.path.join('..', '..', 'test', 'test_data')
+    txt_files = get_files_by_extension(model_directory, '.txt')
+    ply_files = get_files_by_extension(model_directory, '.ply')
 
     for f in txt_files:
         if "landmark" in f:
