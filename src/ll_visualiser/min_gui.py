@@ -7,46 +7,45 @@ from ll_visualiser.utils import visualise_meshes, visualise_landmarks
 pv.global_theme.allow_empty_mesh = True
 
 
+original_landmark_files = ["orignial_lms_left.txt", "orignial_lms_right.txt"]
+predicted_landmark_files = ["predicted_lms_left.txt", "predicted_lms_right.txt"]
+
+
 def get_files_by_extension(directory, extension):
-    return [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(extension)]
+    return [os.path.join(directory, file) for file in os.listdir(directory) if file.endswith(extension)]
+
+
+def get_files_by_names(directory, names):
+    return [os.path.join(directory, name) for name in names if os.path.exists(os.path.join(directory, name))]
+
+
+def load_landmarks(landmark_files):
+    """
+    Load and concatenate all landmark files into a single dictionary.
+
+    Args:
+        landmark_files (list): List of landmark files.
+
+    Returns:
+        dict: {landmark_name: [x, y, z], ...}
+    """
+    all_landmarks = {}
+    for landmark_file in landmark_files:
+        data = np.loadtxt(landmark_file, dtype=str)
+        all_landmarks.update({row[0]: row[1:].astype(float).tolist() for row in data})
+    return all_landmarks
 
 
 if __name__ == "__main__":
     p = pv.Plotter(lighting='light kit', theme=pv.set_plot_theme('default'), window_size=[2560, 1440])
 
     model_directory = os.path.join('..', '..', 'test', 'test_data')
-    txt_files = get_files_by_extension(model_directory, '.txt')
     ply_files = get_files_by_extension(model_directory, '.ply')
-
-    for f in txt_files:
-        if "landmark" in f:
-            if "_filtered" not in f:
-                l_path = f
-            else:
-                lf_path = f
-        if "measurements" in f:
-            if "_filtered" not in f:
-                m_path = f
-            else:
-                mf_path = f
-
-    # load landmarks and measurements
-    landmarks = np.loadtxt(l_path, dtype=object).ravel()
-
-    landmark_filtered_labels = np.loadtxt(lf_path, dtype=str)
-    measurement_filtered_labels = np.loadtxt(mf_path, dtype=str)
-
-    landmarks_points = []
-    landmarks_labels = []
-
-    # row 0 is the header
-    for row in landmarks[1:]:
-        splits = row.split(',')
-        landmarks_points.append([float(x) for x in splits[1:4]])
-        landmarks_labels.append(splits[0])
+    predicted_landmark_files = get_files_by_names(model_directory, predicted_landmark_files)
+    predicted_landmarks = load_landmarks(predicted_landmark_files)
 
     visualise_meshes(p, ply_files)
-    visualise_landmarks(p, landmarks_labels, landmarks_points, landmark_filtered_labels)
+    visualise_landmarks(p, predicted_landmarks)
 
     # Set intial view to frontal view
     p.view_zy(negative=True)
