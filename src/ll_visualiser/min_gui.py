@@ -1,15 +1,7 @@
 import os
-import sys
-from subprocess import call
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QFileDialog
-from PyQt5.QtWidgets import QVBoxLayout, QLabel, QMessageBox
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
-from pathlib import Path
 import numpy as np
-from PIL import Image, ImageFont, ImageDraw
-
 import pyvista as pv
+
 pv.global_theme.allow_empty_mesh = True
 
 
