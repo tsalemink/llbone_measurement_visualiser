@@ -24,6 +24,8 @@ def visualise_landmarks(p, landmarks_labels, landmarks_points, landmark_filtered
     landmarks_labels: List of landmark labels.
     landmark_filtered_labels: List of landmark labels to filter.
     """
+    label_text_color = 'white'
+
     plot_landmarks_lbls, plot_landmarks_points, ll_meshes, sphere_meshes = process_landmarks(
         landmarks_labels, landmarks_points, landmark_filtered_labels)
 
@@ -35,7 +37,16 @@ def visualise_landmarks(p, landmarks_labels, landmarks_points, landmark_filtered
     for mesh in sphere_meshes:
         p.add_mesh(mesh, color='red', show_edges=False, opacity=0.99)
 
-    return plot_landmarks_lbls, plot_landmarks_points
+    # Plots landmarks
+    landmark_actor = p.add_point_labels(plot_landmarks_points,
+                                        plot_landmarks_lbls,
+                                        text_color=label_text_color,
+                                        shape_color='green',
+                                        background_color='green',
+                                        font_size=12,
+                                        always_visible=True,
+                                        render_points_as_spheres=True,
+                                        point_size=8, pickable=True)
 
 
 def process_landmarks(landmarks_labels, landmarks_points, landmark_filtered_labels):

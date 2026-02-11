@@ -15,8 +15,6 @@ if __name__ == "__main__":
     p = pv.Plotter(lighting='light kit',
                    theme=pv.set_plot_theme('default'),
                    window_size=[2560, 1440])
-    label_text_color = 'white'
-    other_text_color = 'black'
 
     model_directory = os.path.join('..', '..', 'test', 'test_data')
     txt_files = get_files_by_extension(model_directory, '.txt')
@@ -54,21 +52,9 @@ if __name__ == "__main__":
         landmarks_points.append([float(x) for x in splits[1:4]])
         landmarks_labels.append(splits[0])
 
-    plot_landmarks_lbls, plot_landmarks_points = visualise_landmarks(
-        p, landmarks_labels, landmarks_points, landmark_filtered_labels)
+    visualise_landmarks(p, landmarks_labels, landmarks_points, landmark_filtered_labels)
 
     visualise_meshes(p, ply_files)
-
-    # Plots landmarks
-    landmark_actor = p.add_point_labels(plot_landmarks_points,
-                                        plot_landmarks_lbls,
-                                        text_color=label_text_color,
-                                        shape_color='green',
-                                        background_color='green',
-                                        font_size=12,
-                                        always_visible=True,
-                                        render_points_as_spheres=True,
-                                        point_size=8, pickable=True)
 
     # Set intial view to frontal view
     p.view_zy(negative=True)
