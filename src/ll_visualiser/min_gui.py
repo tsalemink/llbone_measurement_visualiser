@@ -7,16 +7,6 @@ from ll_visualiser.utils import visualise_meshes, visualise_landmarks
 pv.global_theme.allow_empty_mesh = True
 
 
-class SetVisibilityCallback:
-    """Helper callback to keep a reference to the actor being modified."""
-
-    def __init__(self, actor) -> None:
-        self.actor = actor
-
-    def __call__(self, state):
-        self.actor.SetVisibility(state)
-
-
 def get_files_by_extension(directory, extension):
     return [os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(extension)]
 
@@ -79,7 +69,6 @@ if __name__ == "__main__":
                                         always_visible=True,
                                         render_points_as_spheres=True,
                                         point_size=8, pickable=True)
-    lines_actor_arr = []
 
     # Set intial view to frontal view
     p.view_zy(negative=True)
