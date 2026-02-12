@@ -49,7 +49,7 @@ if __name__ == "__main__":
     visualise_meshes(p, mesh_files)
     visualise_landmarks(p, predicted_landmarks)
 
-    # Set intial view to frontal view
+    # Set initial view to frontal view.
     p.view_zy(negative=True)
     p.add_axes(labels_off=False)
     p.show(interactive=True, auto_close=False)
