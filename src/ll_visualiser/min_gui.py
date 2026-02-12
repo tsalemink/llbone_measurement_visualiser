@@ -38,6 +38,7 @@ def load_landmarks(landmark_files):
 
 if __name__ == "__main__":
     p = pv.Plotter(lighting='light kit', theme=pv.set_plot_theme('default'), window_size=[2560, 1440])
+    p.set_background('dimgrey')
 
     model_directory = os.path.join('..', '..', 'test', 'test_data')
     ply_files = get_files_by_extension(model_directory, '.ply')
