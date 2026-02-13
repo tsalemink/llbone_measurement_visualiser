@@ -39,7 +39,7 @@ def visualise_meshes(p, mesh_files):
         bones_mesh_actor_arr.append(p.add_mesh(mesh, color='white', show_edges=False, opacity=0.99))
 
 
-def visualise_landmarks(p, landmarks):
+def visualise_landmarks(p, landmarks, side):
     """
     Args:
         p (pv.Plotter): PyVista Plotter object.
@@ -47,7 +47,7 @@ def visualise_landmarks(p, landmarks):
     """
     label_text_color = 'white'
 
-    plot_landmarks_lbls, plot_landmarks_points, ll_meshes, sphere_meshes = process_landmarks(landmarks)
+    plot_landmarks_lbls, plot_landmarks_points, ll_meshes, sphere_meshes = process_landmarks(landmarks, side)
 
     # landmark label lines
     for mesh in ll_meshes:
@@ -69,7 +69,7 @@ def visualise_landmarks(p, landmarks):
                                         point_size=8, pickable=True)
 
 
-def process_landmarks(landmarks, units='m'):
+def process_landmarks(landmarks, side, units='m'):
     # Define landmark size and positioning based on units.
     scale = 1000 if units == 'mm' else 1 if units == 'm' else None
     if scale is None:
@@ -87,7 +87,7 @@ def process_landmarks(landmarks, units='m'):
     for i, (label, point) in enumerate(landmarks.items()):
         end_point = point.copy()
         end_point[1] += (i * spacing) + offset
-        end_point[2] += z_offset * (1 if "right" in label else -1)
+        end_point[2] += z_offset * (1 if side == "right" else -1)
 
         ll_meshes.append(pv.Line(point, end_point))
         sphere_meshes.append(pv.Sphere(radius=sphere_radius, center=point))

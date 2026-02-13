@@ -22,8 +22,8 @@ if __name__ == "__main__":
     right_landmarks = load_landmarks(right_predicted_landmark_file)
 
     visualise_meshes(p, mesh_files)
-    visualise_landmarks(p, left_landmarks)
-    visualise_landmarks(p, right_landmarks)
+    visualise_landmarks(p, left_landmarks, 'left')
+    visualise_landmarks(p, right_landmarks, 'right')
 
     # Set initial view to frontal view.
     p.view_zy(negative=True)
