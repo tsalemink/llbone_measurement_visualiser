@@ -3,7 +3,7 @@ import os
 from ll_visualiser.visualiser import visualise_model
 
 
-model_directory = "D:\\Projects\\Gait\\example_models\\Models\\Meshes"
+model_directory = os.path.join('..', '..', 'test', 'asm_test')
 left_original_landmark_file = os.path.join(model_directory, 'orignial_lms_left.txt')
 right_original_landmark_file = os.path.join(model_directory, 'orignial_lms_left.txt')
 left_predicted_landmark_file = os.path.join(model_directory, 'predicted_lms_left.txt')
