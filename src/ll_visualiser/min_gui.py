@@ -15,7 +15,7 @@ right_predicted_landmark_file = os.path.join(model_directory, 'predicted_lms_rig
 
 if __name__ == "__main__":
     p = pv.Plotter(lighting='light kit', theme=pv.set_plot_theme('default'), window_size=[2560, 1440])
-    p.set_background('dimgrey')
+    p.set_background('#2b2b2b')
 
     mesh_files = get_files_by_extension(model_directory, ['.ply', '.stl'])
     left_landmarks = load_landmarks(left_predicted_landmark_file)
