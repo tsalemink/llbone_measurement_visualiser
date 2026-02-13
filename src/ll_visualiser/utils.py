@@ -58,23 +58,19 @@ def process_landmarks(landmarks, units='m'):
     z_offset = 0.15 * scale
     sphere_radius = 0.003 * scale
 
-    plot_landmarks_lbls = []
+    plot_landmarks_labels = []
     plot_landmarks_points = []
     ll_meshes = []
     sphere_meshes = []
 
-    for i, (lbl, pnt) in enumerate(landmarks.items()):
-        end_pnt = pnt.copy()
-        if "right" in lbl:
-            end_pnt[1] += (i * spacing) + offset
-            end_pnt[2] += z_offset
-        else:
-            end_pnt[1] += (i * spacing) + offset
-            end_pnt[2] -= z_offset
+    for i, (label, point) in enumerate(landmarks.items()):
+        end_point = point.copy()
+        end_point[1] += (i * spacing) + offset
+        end_point[2] += z_offset * (1 if "right" in label else -1)
 
-        ll_meshes.append(pv.Line(pnt, end_pnt))
-        sphere_meshes.append(pv.Sphere(radius=sphere_radius, center=pnt))
-        plot_landmarks_lbls.append(lbl)
-        plot_landmarks_points.append(end_pnt)
+        ll_meshes.append(pv.Line(point, end_point))
+        sphere_meshes.append(pv.Sphere(radius=sphere_radius, center=point))
+        plot_landmarks_labels.append(label)
+        plot_landmarks_points.append(end_point)
 
-    return plot_landmarks_lbls, plot_landmarks_points, ll_meshes, sphere_meshes
+    return plot_landmarks_labels, plot_landmarks_points, ll_meshes, sphere_meshes
