@@ -4,6 +4,9 @@ import numpy as np
 import pyvista as pv
 
 
+medial_markers = ['MEC', 'condyle_med', 'malleolus_med']
+
+
 def get_files_by_extension(directory, extensions):
     return [os.path.join(directory, file) for file in os.listdir(directory)
             if any(file.endswith(extension) for extension in extensions)]
@@ -44,29 +47,30 @@ def visualise_landmarks(p, landmarks, side):
     Args:
         p (pv.Plotter): PyVista Plotter object.
         landmarks (dictionary): Dictionary of landmarks.
+        side (str): Side (left/right).
     """
     label_text_color = 'white'
 
     plot_landmarks_lbls, plot_landmarks_points, ll_meshes, sphere_meshes = process_landmarks(landmarks, side)
 
-    # landmark label lines
+    # Landmark label lines.
     for mesh in ll_meshes:
-        p.add_mesh(mesh, color='green', show_edges=False, opacity=0.30, line_width=4)
+        p.add_mesh(mesh, color='green', show_edges=False, opacity=0.30, line_width=2)
 
-    # landmark point spheres
+    # Landmark point spheres.
     for mesh in sphere_meshes:
         p.add_mesh(mesh, color='red', show_edges=False, opacity=0.99)
 
-    # Plots landmarks
+    # Plots landmark labels.
+    justification = 'left' if side == 'left' else 'right'
     landmark_actor = p.add_point_labels(plot_landmarks_points,
                                         plot_landmarks_lbls,
                                         text_color=label_text_color,
-                                        shape_color='green',
-                                        background_color='green',
                                         font_size=12,
                                         always_visible=True,
-                                        render_points_as_spheres=True,
-                                        point_size=8, pickable=True)
+                                        point_size=0,
+                                        justification_horizontal=justification,
+                                        shape=None)
 
 
 def process_landmarks(landmarks, side, units='m'):
@@ -76,7 +80,7 @@ def process_landmarks(landmarks, side, units='m'):
         raise ValueError(f"Unsupported units: {units}. Use 'm' or 'mm'.")
     spacing = 0.003 * scale
     offset = 0.02 * scale
-    z_offset = 0.15 * scale
+    z_offset = 0.05 * scale
     sphere_radius = 0.003 * scale
 
     plot_landmarks_labels = []
@@ -86,8 +90,8 @@ def process_landmarks(landmarks, side, units='m'):
 
     for i, (label, point) in enumerate(landmarks.items()):
         end_point = point.copy()
-        end_point[1] += (i * spacing) + offset
-        end_point[2] += z_offset * (1 if side == "right" else -1)
+        end_point[1] += spacing + offset
+        end_point[2] += z_offset * (1 if side == "right" else -1) * (-1 if label in medial_markers else 1)
 
         ll_meshes.append(pv.Line(point, end_point))
         sphere_meshes.append(pv.Sphere(radius=sphere_radius, center=point))
