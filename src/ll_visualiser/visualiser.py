@@ -1,10 +1,5 @@
 
-import pyvista as pv
-
 from ll_visualiser.utils import visualise_meshes, visualise_landmarks, get_files_by_extension, load_landmarks
-
-
-pv.global_theme.allow_empty_mesh = True
 
 
 def visualise_model(plotter, model_directory, left_predicted_landmark_file, right_predicted_landmark_file):
